@@ -26,8 +26,13 @@ void setup() {
 void loop() {
   JSONVar data = getData();
 
-  displayTeslaData(data["tesla"]);
-  delay(5000);
+  for (int i = 0; i < 6; i++) {
+    displayTeslaData(data["tesla"]);
+    delay(5000);
+
+    displayAranetData(data["aranet"]);
+    delay(5000);
+  }
 }
 
 void setupDisplay() {
@@ -97,23 +102,62 @@ JSONVar getData() {
 
 void displayTeslaData(JSONVar data) {
   display.clearDisplay();
-  display.setCursor(0, 1);
+  display.setCursor(0, 0);
   display.println("    Tesla Model 3");
-  display.drawLine(0, 11, display.width() - 1, 11, SSD1306_WHITE);
+  display.drawLine(0, 9, display.width() - 1, 9, SSD1306_WHITE);
 
-  display.setCursor(0, 18);
+  display.setCursor(0, 14);
   display.print("Battery ");
   display.print(data["battery"]);
   display.print("%");
+  display.display();
 
-  display.setCursor(0, 29);
+  display.setCursor(0, 24);
   display.print("Distance ");
   display.print(data["distance"]);
   display.print(" km");
   display.display();
 
-  display.setCursor(0, 40);
+  display.setCursor(0, 34);
   display.print("Wake ");
   display.print(data["wake"]);
+  display.display();
+}
+
+void displayAranetData(JSONVar data) {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("       Aranet 4");
+  display.drawLine(0, 9, display.width() - 1, 9, SSD1306_WHITE);
+
+  display.setCursor(0, 14);
+  display.print("CO2 ");
+  display.print(data["co2"]);
+  display.print(" ppm");
+
+  display.setCursor(0, 24);
+  display.print("Temperature ");
+  display.print(data["temperature"]);
+  display.drawCircle(100, 24, 2, SSD1306_WHITE);
+  display.setCursor(105, 24);
+  display.print("C");
+  display.display();
+
+  display.setCursor(0, 34);
+  display.print("Humidity ");
+  display.print(data["humidity"]);
+  display.print("%");
+  display.display();
+
+  display.setCursor(0, 44);
+  display.print("Pressure ");
+  display.print(data["pressure"]);
+  display.print(" hPa");
+  display.display();
+
+  display.setCursor(0, 54);
+  display.print("Battery ");
+  display.print(data["battery"]);
+  display.print("%");
   display.display();
 }
