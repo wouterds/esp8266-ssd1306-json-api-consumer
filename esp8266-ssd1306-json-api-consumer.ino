@@ -114,7 +114,7 @@ void displayTeslaData(JSONVar data) {
 
   display.setCursor(0, 24);
   display.print("Distance ");
-  display.print(data["distance"]);
+  display.print(formatTo1Decimal(double(data["distance"])));
   display.print(" km");
   display.display();
 
@@ -137,9 +137,9 @@ void displayAranetData(JSONVar data) {
 
   display.setCursor(0, 24);
   display.print("Temperature ");
-  display.print(data["temperature"]);
-  display.drawCircle(100, 24, 2, SSD1306_WHITE);
-  display.setCursor(104, 24);
+  display.print(formatTo1Decimal(double(data["temperature"])));
+  display.drawCircle(101, 24, 2, SSD1306_WHITE);
+  display.setCursor(106, 24);
   display.print("C");
   display.display();
 
@@ -151,7 +151,7 @@ void displayAranetData(JSONVar data) {
 
   display.setCursor(0, 44);
   display.print("Pressure ");
-  display.print(data["pressure"]);
+  display.print(formatTo1Decimal(double(data["pressure"])));
   display.print(" hPa");
   display.display();
 
@@ -160,4 +160,10 @@ void displayAranetData(JSONVar data) {
   display.print(data["battery"]);
   display.print("%");
   display.display();
+}
+
+String formatTo1Decimal(double number) {
+  char buffer[10];
+  snprintf(buffer, sizeof(buffer), "%.1f", number);
+  return String(buffer);
 }
