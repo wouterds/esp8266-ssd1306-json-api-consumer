@@ -139,7 +139,7 @@ void displayAranetData(JSONVar data) {
   display.print("Temperature ");
   display.print(data["temperature"]);
   display.drawCircle(100, 24, 2, SSD1306_WHITE);
-  display.setCursor(105, 24);
+  display.setCursor(104, 24);
   display.print("C");
   display.display();
 
