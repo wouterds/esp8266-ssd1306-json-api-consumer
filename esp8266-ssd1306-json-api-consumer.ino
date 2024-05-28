@@ -26,22 +26,7 @@ void setup() {
 void loop() {
   JSONVar data = getData();
 
-  display.clearDisplay();
-  display.setCursor(0, 1);
-  display.println("    Tesla Model 3");
-  display.drawLine(0, 11, display.width() - 1, 11, SSD1306_WHITE);
-
-  display.setCursor(0, 18);
-  display.print("Battery ");
-  display.print(data["battery"]);
-  display.print("%");
-
-  display.setCursor(0, 28);
-  display.print("Distance ");
-  display.print(data["distance"]);
-  display.print(" km");
-  display.display();
-
+  displayTeslaData(data["tesla"]);
   delay(5000);
 }
 
@@ -86,9 +71,9 @@ JSONVar getData() {
     Serial.println("Could not connect to wouterds.be");
     return JSON.parse("null");
   }
-   
+
   while (client.connected()) {
-    client.println("GET https://wouterds.be/api/tesla HTTP/1.0");
+    client.println("GET https://wouterds.be/api/experiments HTTP/1.0");
     client.println("Host: wouterds.be");
     client.println("Connection: close");
     client.println();
@@ -108,4 +93,27 @@ JSONVar getData() {
   }
 
   return JSON.parse("null");
+}
+
+void displayTeslaData(JSONVar data) {
+  display.clearDisplay();
+  display.setCursor(0, 1);
+  display.println("    Tesla Model 3");
+  display.drawLine(0, 11, display.width() - 1, 11, SSD1306_WHITE);
+
+  display.setCursor(0, 18);
+  display.print("Battery ");
+  display.print(data["battery"]);
+  display.print("%");
+
+  display.setCursor(0, 29);
+  display.print("Distance ");
+  display.print(data["distance"]);
+  display.print(" km");
+  display.display();
+
+  display.setCursor(0, 40);
+  display.print("Wake ");
+  display.print(data["wake"]);
+  display.display();
 }
