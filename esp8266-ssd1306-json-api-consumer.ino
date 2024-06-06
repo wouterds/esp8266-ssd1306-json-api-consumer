@@ -48,9 +48,12 @@ void setupDisplay() {
 }
 
 void setupWiFi()  {
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  display.clearDisplay();
+  displayHeader("Setup");
   display.print("[WiFi] Connecting");
   display.display();
+
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   while(WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -100,25 +103,31 @@ JSONVar getData() {
   return JSON.parse("null");
 }
 
+void displayHeader(String title) {
+  display.clearDisplay();
+  display.setCursor((DISPLAY_WIDTH - title.length() * 6) / 2, 4);
+  display.print(title);
+  display.drawLine(0, 15, display.width() - 1, 15, SSD1306_WHITE);
+  display.setCursor(0, 16);
+}
+
 void displayTeslaData(JSONVar data) {
   display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("    Tesla Model 3");
-  display.drawLine(0, 9, display.width() - 1, 9, SSD1306_WHITE);
+  displayHeader("Tesla Model 3");
 
-  display.setCursor(0, 14);
+  display.setCursor(0, 18);
   display.print("Battery ");
   display.print(data["battery"]);
   display.print("%");
   display.display();
 
-  display.setCursor(0, 24);
+  display.setCursor(0, 27);
   display.print("Distance ");
   display.print(formatTo1Decimal(double(data["distance"])));
   display.print(" km");
   display.display();
 
-  display.setCursor(0, 34);
+  display.setCursor(0, 36);
   display.print("Wake ");
   display.print(data["wake"]);
   display.display();
@@ -126,30 +135,28 @@ void displayTeslaData(JSONVar data) {
 
 void displayAranetData(JSONVar data) {
   display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("       Aranet 4");
-  display.drawLine(0, 9, display.width() - 1, 9, SSD1306_WHITE);
+  displayHeader("Aranet 4");
 
-  display.setCursor(0, 14);
+  display.setCursor(0, 18);
   display.print("CO2 ");
   display.print(data["co2"]);
   display.print(" ppm");
 
-  display.setCursor(0, 24);
+  display.setCursor(0, 27);
   display.print("Temperature ");
   display.print(formatTo1Decimal(double(data["temperature"])));
-  display.drawCircle(101, 24, 2, SSD1306_WHITE);
-  display.setCursor(106, 24);
+  display.drawCircle(99, 25, 1, SSD1306_WHITE);
+  display.setCursor(102, 27);
   display.print("C");
   display.display();
 
-  display.setCursor(0, 34);
+  display.setCursor(0, 36);
   display.print("Humidity ");
   display.print(data["humidity"]);
   display.print("%");
   display.display();
 
-  display.setCursor(0, 44);
+  display.setCursor(0, 45);
   display.print("Pressure ");
   display.print(formatTo1Decimal(double(data["pressure"])));
   display.print(" hPa");
