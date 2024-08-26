@@ -8,15 +8,17 @@
 #include <WiFiUdp.h>
 #include "env.h"
 
-#define DISPLAY_WIDTH 128
-#define DISPLAY_HEIGHT 64
-#define DISPLAY_ADDRESS 0x3C
+const int DISPLAY_WIDTH = 128;
+const int DISPLAY_HEIGHT = 64;
+const int DISPLAY_ADDRESS = 0x3C;
+const char* NTP_SERVER = "pool.ntp.org";
+const char* API_HOST = "nuc.wouterds.be";
+const int API_PORT = 443;
 
 WiFiClientSecure client;
 Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire);
-
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org");
+NTPClient timeClient(ntpUDP, NTP_SERVER);
 
 void setup() {
   Serial.begin(9600);
@@ -30,18 +32,73 @@ void setup() {
 }
 
 void loop() {
-  static JSONVar data;
-
   timeClient.update();
-  data = getData();
+  JSONVar data = getData();
+
+  updateDisplay(data);
+}
+
+void setupDisplay() {
+  while (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS)) {
+    delay(10);
+  }
 
   display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.cp437(true);
+}
 
+void setupWiFi() {
+  display.clearDisplay();
+  displayHeader("Setup");
+  display.print("[WiFi] Connecting");
+  display.display();
+
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    display.print(".");
+    display.display();
+  }
+
+  display.println("\n[WiFi] Connected");
+  display.print("[WiFi] IP ");
+  display.println(WiFi.localIP().toString());
+  display.display();
+  delay(2000);
+}
+
+JSONVar getData() {
+  if (!client.connect(API_HOST, API_PORT)) {
+    Serial.println("Could not connect to API");
+    return JSON.parse("null");
+  }
+
+  client.println("GET https://" API_HOST "/stats HTTP/1.0");
+  client.println("Host: " API_HOST);
+  client.println("Connection: close");
+  client.println();
+
+  String response = client.readString();
+  client.stop();
+
+  int separatorIndex = response.indexOf("\r\n\r\n");
+  if (separatorIndex != -1) {
+    return JSON.parse(response.substring(separatorIndex + 4));
+  }
+
+  return JSON.parse("null");
+}
+
+void updateDisplay(JSONVar& data) {
+  display.clearDisplay();
   displayHeader("NUC SYSTEM");
   displayDataWithProgressBar("CPU", data["cpu_used"], 17);
   displayDataWithProgressBar("RAM", data["ram_used"], 33);
   displayDataWithProgressBar("Disk", data["disk_used"], 49);
-
   display.display();
 }
 
@@ -61,79 +118,6 @@ void drawProgressBar(int percentage, int x, int y, int width, int height) {
   display.fillRect(x, y, filledWidth, height, SSD1306_WHITE);
 }
 
-void setupDisplay() {
-  while (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS)) {
-    delay(10);
-  }
-
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.cp437(true);
-}
-
-void setupWiFi()  {
-  display.clearDisplay();
-  displayHeader("Setup");
-  display.print("[WiFi] Connecting");
-  display.display();
-
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  while(WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    display.print(".");
-    display.display();
-  }
-  delay(1000);
-
-  display.println("");
-  display.println("[WiFi] Connected");
-  display.display();
-  delay(1000);
-
-  display.print("[WiFi] IP ");
-  display.print(WiFi.localIP());
-  display.println("");
-  display.display();
-  delay(1000);
-}
-
-JSONVar getData() {
-  if (!client.connect("nuc.wouterds.be", 443)) {
-    Serial.println("Could not connect to nuc.wouterds.be");
-    return JSON.parse("null");
-  }
-
-  while (client.connected()) {
-    client.println("GET https://nuc.wouterds.be/stats HTTP/1.0");
-    client.println("Host: nuc.wouterds.be");
-    client.println("Connection: close");
-    client.println();
-
-    String response = client.readString();
-    client.stop();
-
-    String headers = "";
-    String body = "";
-    int separatorIndex = response.indexOf("\r\n\r\n");
-    if (separatorIndex != -1) {
-        headers = response.substring(0, separatorIndex);
-        body = response.substring(separatorIndex + 4);
-    }
-
-    return JSON.parse(body);
-  }
-
-  return JSON.parse("null");
-}
-
-String getFormattedTime() {
-  String formattedTime = timeClient.getFormattedTime();
-  return formattedTime;
-}
-
 void displayHeader(String title) {
   display.setCursor(0, 4);
   display.print(title);
@@ -145,4 +129,8 @@ void displayHeader(String title) {
 
   display.drawLine(0, 15, display.width() - 1, 15, SSD1306_WHITE);
   display.setCursor(0, 16);
+}
+
+String getFormattedTime() {
+  return timeClient.getFormattedTime();
 }
