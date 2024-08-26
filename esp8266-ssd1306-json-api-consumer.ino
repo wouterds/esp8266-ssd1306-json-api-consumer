@@ -30,32 +30,35 @@ void setup() {
 }
 
 void loop() {
-  timeClient.update();
+  static JSONVar data;
 
-  JSONVar data = getData();
+  timeClient.update();
+  data = getData();
 
   display.clearDisplay();
+
   displayHeader("NUC SYSTEM");
+  displayDataWithProgressBar("CPU", data["cpu_used"], 17);
+  displayDataWithProgressBar("RAM", data["ram_used"], 33);
+  displayDataWithProgressBar("Disk", data["disk_used"], 49);
 
-  display.setCursor(0, 18);
-  display.print("CPU ");
-  display.print(data["cpu_used"]);
-  display.print("%");
   display.display();
+}
 
-  display.setCursor(0, 27);
-  display.print("RAM ");
-  display.print(data["ram_used"]);
+void displayDataWithProgressBar(const char* label, int percentage, int yPosition) {
+  display.setCursor(0, yPosition);
+  display.print(label);
+  display.print(" ");
+  display.print(percentage);
   display.print("%");
-  display.display();
 
-  display.setCursor(0, 36);
-  display.print("Disk ");
-  display.print(data["disk_used"]);
-  display.print("%");
-  display.display();
+  drawProgressBar(percentage, 0, yPosition + 9, DISPLAY_WIDTH, 4);
+}
 
-  delay(5000);
+void drawProgressBar(int percentage, int x, int y, int width, int height) {
+  int filledWidth = (percentage * width) / 100;
+  display.drawRect(x, y, width, height, SSD1306_WHITE);
+  display.fillRect(x, y, filledWidth, height, SSD1306_WHITE);
 }
 
 void setupDisplay() {
@@ -132,7 +135,6 @@ String getFormattedTime() {
 }
 
 void displayHeader(String title) {
-  display.clearDisplay();
   display.setCursor(0, 4);
   display.print(title);
 
