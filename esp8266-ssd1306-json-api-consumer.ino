@@ -4,6 +4,8 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <Arduino_JSON.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 #include "env.h"
 
 #define DISPLAY_WIDTH 128
@@ -13,26 +15,47 @@
 WiFiClientSecure client;
 Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire);
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+
 void setup() {
   Serial.begin(9600);
   Serial.println();
 
   setupDisplay();
   setupWiFi();
+  timeClient.begin();
 
   client.setInsecure();
 }
 
 void loop() {
+  timeClient.update();
+
   JSONVar data = getData();
 
-  for (int i = 0; i < 6; i++) {
-    displayTeslaData(data["tesla"]);
-    delay(5000);
+  display.clearDisplay();
+  displayHeader("NUC SYSTEM");
 
-    displayAranetData(data["aranet"]);
-    delay(5000);
-  }
+  display.setCursor(0, 18);
+  display.print("CPU ");
+  display.print(data["cpu_used"]);
+  display.print("%");
+  display.display();
+
+  display.setCursor(0, 27);
+  display.print("RAM ");
+  display.print(data["ram_used"]);
+  display.print("%");
+  display.display();
+
+  display.setCursor(0, 36);
+  display.print("Disk ");
+  display.print(data["disk_used"]);
+  display.print("%");
+  display.display();
+
+  delay(5000);
 }
 
 void setupDisplay() {
@@ -75,14 +98,14 @@ void setupWiFi()  {
 }
 
 JSONVar getData() {
-  if (!client.connect("wouterds.be", 443)) {
-    Serial.println("Could not connect to wouterds.be");
+  if (!client.connect("nuc.wouterds.be", 443)) {
+    Serial.println("Could not connect to nuc.wouterds.be");
     return JSON.parse("null");
   }
 
   while (client.connected()) {
-    client.println("GET https://wouterds.be/api/experiments HTTP/1.0");
-    client.println("Host: wouterds.be");
+    client.println("GET https://nuc.wouterds.be/stats HTTP/1.0");
+    client.println("Host: nuc.wouterds.be");
     client.println("Connection: close");
     client.println();
 
@@ -103,74 +126,21 @@ JSONVar getData() {
   return JSON.parse("null");
 }
 
+String getFormattedTime() {
+  String formattedTime = timeClient.getFormattedTime();
+  return formattedTime;
+}
+
 void displayHeader(String title) {
   display.clearDisplay();
-  display.setCursor((DISPLAY_WIDTH - title.length() * 6) / 2, 4);
+  display.setCursor(0, 4);
   display.print(title);
+
+  String time = getFormattedTime();
+  int16_t timeWidth = time.length() * 6;
+  display.setCursor(DISPLAY_WIDTH - timeWidth, 4);
+  display.print(time);
+
   display.drawLine(0, 15, display.width() - 1, 15, SSD1306_WHITE);
   display.setCursor(0, 16);
-}
-
-void displayTeslaData(JSONVar data) {
-  display.clearDisplay();
-  displayHeader("Tesla Model 3");
-
-  display.setCursor(0, 18);
-  display.print("Battery ");
-  display.print(data["battery"]);
-  display.print("%");
-  display.display();
-
-  display.setCursor(0, 27);
-  display.print("Distance ");
-  display.print(formatTo1Decimal(double(data["distance"])));
-  display.print(" km");
-  display.display();
-
-  display.setCursor(0, 36);
-  display.print("Wake ");
-  display.print(data["wake"]);
-  display.display();
-}
-
-void displayAranetData(JSONVar data) {
-  display.clearDisplay();
-  displayHeader("Aranet 4");
-
-  display.setCursor(0, 18);
-  display.print("CO2 ");
-  display.print(data["co2"]);
-  display.print(" ppm");
-
-  display.setCursor(0, 27);
-  display.print("Temperature ");
-  display.print(formatTo1Decimal(double(data["temperature"])));
-  display.drawCircle(99, 25, 1, SSD1306_WHITE);
-  display.setCursor(102, 27);
-  display.print("C");
-  display.display();
-
-  display.setCursor(0, 36);
-  display.print("Humidity ");
-  display.print(data["humidity"]);
-  display.print("%");
-  display.display();
-
-  display.setCursor(0, 45);
-  display.print("Pressure ");
-  display.print(formatTo1Decimal(double(data["pressure"])));
-  display.print(" hPa");
-  display.display();
-
-  display.setCursor(0, 54);
-  display.print("Battery ");
-  display.print(data["battery"]);
-  display.print("%");
-  display.display();
-}
-
-String formatTo1Decimal(double number) {
-  char buffer[10];
-  snprintf(buffer, sizeof(buffer), "%.1f", number);
-  return String(buffer);
 }
