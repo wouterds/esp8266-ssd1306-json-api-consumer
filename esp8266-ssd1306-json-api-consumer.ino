@@ -95,10 +95,10 @@ JSONVar getData() {
 
 void updateDisplay(JSONVar& data) {
   display.clearDisplay();
-  displayHeader("NUC SYSTEM");
-  displayDataWithProgressBar("CPU", data["cpu_used"], 17);
-  displayDataWithProgressBar("RAM", data["ram_used"], 33);
-  displayDataWithProgressBar("Disk", data["disk_used"], 49);
+  displayHeader("NUC");
+  displayDataWithProgressBar("CPU", data["cpu"], 17);
+  displayDataWithProgressBar("Memory", data["memory"], 33);
+  displayDataWithProgressBar("Disk", data["disk"], 49);
   display.display();
 }
 
