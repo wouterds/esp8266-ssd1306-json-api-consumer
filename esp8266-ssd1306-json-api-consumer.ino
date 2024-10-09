@@ -170,7 +170,10 @@ void displayHeader(String title, int temperature) {
   if (temperature != -1) {
     display.drawBitmap(25, 3, thermometerIcon, 8, 10, SSD1306_WHITE);
     display.setCursor(34, 5);
-    display.print(String(temperature) + "C");
+    display.print(String(temperature));
+    display.drawCircle(display.getCursorX() + 2, 5, 1, SSD1306_WHITE);
+    display.setCursor(display.getCursorX() + 5, 5);
+    display.print("C");
   }
 
   String time = getFormattedTime();
