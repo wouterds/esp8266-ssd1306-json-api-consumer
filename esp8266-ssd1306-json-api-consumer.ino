@@ -3,9 +3,9 @@
 #include <Adafruit_SSD1306.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <Arduino_JSON.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <ArduinoJson.h>
 #include "env.h"
 
 const int DISPLAY_WIDTH = 128;
@@ -15,10 +15,17 @@ const char* NTP_SERVER = "pool.ntp.org";
 const char* API_HOST = "nuc.wouterds.be";
 const int API_PORT = 443;
 
-WiFiClientSecure client;
-Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire);
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, NTP_SERVER);
+static WiFiClientSecure client;
+static Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire);
+static WiFiUDP ntpUDP;
+static NTPClient timeClient(ntpUDP, NTP_SERVER);
+
+struct Stats {
+  float cpu;
+  int cpu_temp;
+  float memory;
+  float disk;
+};
 
 void setup() {
   Serial.begin(9600);
@@ -33,14 +40,14 @@ void setup() {
 
 void loop() {
   timeClient.update();
-  JSONVar data = getData();
-
+  Stats data = getData();
   updateDisplay(data);
+  delay(100);
 }
 
 void setupDisplay() {
   while (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS)) {
-    delay(10);
+    delay(25);
   }
 
   display.clearDisplay();
@@ -71,45 +78,62 @@ void setupWiFi() {
   delay(2000);
 }
 
-JSONVar getData() {
+Stats getData() {
+  Stats stats = {0, 0, 0, 0};
+
   if (!client.connect(API_HOST, API_PORT)) {
-    Serial.println("Could not connect to API");
-    return JSON.parse("null");
+    Serial.println(F("Could not connect to API"));
+    return stats;
   }
 
-  client.println("GET https://" + String(API_HOST) + "/stats HTTP/1.0");
-  client.println("Host: " + String(API_HOST));
-  client.println("Connection: close");
+  client.println(F("GET /stats HTTP/1.1"));
+  client.print(F("Host: "));
+  client.println(API_HOST);
+  client.println(F("Connection: close"));
   client.println();
 
-  String response = client.readString();
-  client.stop();
-
-  int separatorIndex = response.indexOf("\r\n\r\n");
-  if (separatorIndex != -1) {
-    return JSON.parse(response.substring(separatorIndex + 4));
+  while (client.connected()) {
+    String line = client.readStringUntil('\n');
+    if (line == "\r") {
+      break;
+    }
   }
 
-  return JSON.parse("null");
+  StaticJsonDocument<200> doc;
+  DeserializationError error = deserializeJson(doc, client);
+  client.stop();
+
+  if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.f_str());
+    return stats;
+  }
+
+  stats.cpu = doc["cpu"].as<float>();
+  stats.cpu_temp = doc["cpu_temp"].as<int>();
+  stats.memory = doc["memory"].as<float>();
+  stats.disk = doc["disk"].as<float>();
+
+  return stats;
 }
 
-void updateDisplay(JSONVar& data) {
+void updateDisplay(const Stats& data) {
   display.clearDisplay();
-  displayHeader("NUC");
-  displayDataWithProgressBar("CPU", data["cpu"], 17);
-  displayDataWithProgressBar("Memory", data["memory"], 33);
-  displayDataWithProgressBar("Disk", data["disk"], 49);
+  displayHeader("NUC " + String(data.cpu_temp) + "C");
+  displayDataWithProgressBar("CPU", data.cpu, 17);
+  displayDataWithProgressBar("Memory", data.memory, 33);
+  displayDataWithProgressBar("Disk", data.disk, 49);
   display.display();
 }
 
-void displayDataWithProgressBar(const char* label, int percentage, int yPosition) {
+void displayDataWithProgressBar(const char* label, float value, int yPosition) {
   display.setCursor(0, yPosition);
   display.print(label);
   display.print(" ");
-  display.print(percentage);
+  display.print(value, 1);
   display.print("%");
 
-  drawProgressBar(percentage, 0, yPosition + 9, DISPLAY_WIDTH, 4);
+  drawProgressBar(int(value), 0, yPosition + 9, DISPLAY_WIDTH, 4);
 }
 
 void drawProgressBar(int percentage, int x, int y, int width, int height) {
@@ -132,5 +156,7 @@ void displayHeader(String title) {
 }
 
 String getFormattedTime() {
-  return timeClient.getFormattedTime();
+  static char timeStr[9];
+  sprintf(timeStr, "%02d:%02d:%02d", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
+  return String(timeStr);
 }
