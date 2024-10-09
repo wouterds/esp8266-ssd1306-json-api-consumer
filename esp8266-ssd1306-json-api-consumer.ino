@@ -77,8 +77,8 @@ JSONVar getData() {
     return JSON.parse("null");
   }
 
-  client.println("GET https://" API_HOST "/stats HTTP/1.0");
-  client.println("Host: " API_HOST);
+  client.println("GET https://" + String(API_HOST) + "/stats HTTP/1.0");
+  client.println("Host: " + String(API_HOST));
   client.println("Connection: close");
   client.println();
 
