@@ -147,9 +147,12 @@ void updateDisplay(const Stats& data) {
 void displayDataWithProgressBar(const char* label, float value, int yPosition) {
   display.setCursor(0, yPosition);
   display.print(label);
-  display.print(" ");
-  display.print(value, 1);
-  display.print("%");
+
+  char percentStr[6];
+  snprintf(percentStr, sizeof(percentStr), "%.1f%%", value);
+
+  display.setCursor(DISPLAY_WIDTH - strlen(percentStr) * 6, yPosition);
+  display.print(percentStr);
 
   drawProgressBar(int(value), 0, yPosition + 9, DISPLAY_WIDTH, 4);
 }
@@ -165,8 +168,8 @@ void displayHeader(String title, int temperature) {
   display.print(title);
 
   if (temperature != -1) {
-    display.drawBitmap(24, 3, thermometerIcon, 8, 10, SSD1306_WHITE);
-    display.setCursor(33, 5);
+    display.drawBitmap(25, 3, thermometerIcon, 8, 10, SSD1306_WHITE);
+    display.setCursor(34, 5);
     display.print(String(temperature) + "C");
   }
 
