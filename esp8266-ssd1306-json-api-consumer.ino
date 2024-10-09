@@ -20,12 +20,29 @@ static Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire);
 static WiFiUDP ntpUDP;
 static NTPClient timeClient(ntpUDP, NTP_SERVER);
 
+const unsigned char thermometerIcon[] PROGMEM = {
+  0b00100000,
+  0b01010000,
+  0b01010000,
+  0b01010000,
+  0b01010000,
+  0b01010000,
+  0b10001000,
+  0b11111000,
+  0b11111000,
+  0b01110000
+};
+
 struct Stats {
   float cpu;
   int cpu_temp;
   float memory;
   float disk;
 };
+
+void displayHeader(String title, int temperature = -1);
+void drawProgressBar(int percentage, int x, int y, int width, int height);
+void displayDataWithProgressBar(const char* label, float value, int yPosition);
 
 void setup() {
   Serial.begin(9600);
@@ -60,6 +77,7 @@ void setupDisplay() {
 void setupWiFi() {
   display.clearDisplay();
   displayHeader("Setup");
+  display.setCursor(0, 18);
   display.print("[WiFi] Connecting");
   display.display();
 
@@ -119,10 +137,10 @@ Stats getData() {
 
 void updateDisplay(const Stats& data) {
   display.clearDisplay();
-  displayHeader("NUC " + String(data.cpu_temp) + "C");
-  displayDataWithProgressBar("CPU", data.cpu, 17);
-  displayDataWithProgressBar("Memory", data.memory, 33);
-  displayDataWithProgressBar("Disk", data.disk, 49);
+  displayHeader("NUC", data.cpu_temp);
+  displayDataWithProgressBar("CPU", data.cpu, 18);
+  displayDataWithProgressBar("Memory", data.memory, 34);
+  displayDataWithProgressBar("Disk", data.disk, 50);
   display.display();
 }
 
@@ -142,13 +160,19 @@ void drawProgressBar(int percentage, int x, int y, int width, int height) {
   display.fillRect(x, y, filledWidth, height, SSD1306_WHITE);
 }
 
-void displayHeader(String title) {
-  display.setCursor(0, 4);
+void displayHeader(String title, int temperature) {
+  display.setCursor(0, 5);
   display.print(title);
+
+  if (temperature != -1) {
+    display.drawBitmap(24, 3, thermometerIcon, 8, 10, SSD1306_WHITE);
+    display.setCursor(33, 5);
+    display.print(String(temperature) + "C");
+  }
 
   String time = getFormattedTime();
   int16_t timeWidth = time.length() * 6;
-  display.setCursor(DISPLAY_WIDTH - timeWidth, 4);
+  display.setCursor(DISPLAY_WIDTH - timeWidth, 5);
   display.print(time);
 
   display.drawLine(0, 15, display.width() - 1, 15, SSD1306_WHITE);
